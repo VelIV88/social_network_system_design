@@ -30,7 +30,7 @@ TravelSN is a special social network for travelers.
 7. limits:  
 7.1 number of characters in text is no more than 100 per post    
 7.2 number of characters in comment is no more than 100 per post    
-7.3 size of photo is no more than 1 MB on preview no more that 0.4 MB
+7.3 size of photo is no more than 1 MB  
 7.4 size of feed is 10 posts  
 7.4 one photo one post
 8. timing:

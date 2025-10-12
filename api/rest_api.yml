@@ -1,0 +1,476 @@
+openapi: 3.0.0
+
+tags:
+  - name: TNS
+
+info:
+  - title: travelers social network open API
+  - describe: this API describe interactions within the social network
+  - version: 1.0.0
+
+servers:
+  - url: https://api.besttravelnet.com
+    description: address of production server
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: integer
+    
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        author_id:
+          type: string
+          format: uuid
+        photo_url:
+          type: string
+          format: uri
+        text:
+          type: string
+          maxLength: 100
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        location_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        likes_count:
+          type: integer
+        dislikes_count:
+          type: integer
+        comments_count:
+          type: integer
+    
+    PostCreateRequest:
+      type: object
+      required:
+        - photo_url
+      properties:
+        photo_url:
+          type: string
+          format: uri
+        text:
+          type: string
+          maxLength: 100
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        location_name:
+          type: string
+    
+    PostEvaluateRequest:
+      type: object
+      required:
+        - reaction
+      properties:
+        reaction:
+          type: string
+          enum: [like, dislike]
+    
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        post_id:
+          type: string
+          format: uuid
+        author_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          maxLength: 100
+        created_at:
+          type: string
+          format: date-time
+    
+    CommentWriteRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          maxLength: 100
+    
+    FeedResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+            has_more:
+              type: boolean
+    
+    CommentsResponse:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+            has_more:
+              type: boolean
+
+paths:
+  /posts:
+    post:
+      summary: create new post
+      description: create post with photo. geo and text is optionaly.
+      operationId: PostCreate
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: incorrect parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts/{post_id}/evaluate:
+    post:
+      summary: evaluating of post
+      description: put or remove a like/dislike from the post
+      operationId: PostEvaluate
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostEvaluateRequest'
+      responses:
+        '200':
+          description: score was successfully put/removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  action:
+                    type: string
+                    enum: [added, removed]
+                  current_likes:
+                    type: integer
+                  current_dislikes:
+                    type: integer
+        '404':
+          description: post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feed/my:
+    get:
+      summary: my subscription feed
+      description: returns the feed of posts from the users I have subscribed to
+      operationId: ViewMyFeed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feed/geo:
+    get:
+      summary: feed by geolocation
+      description: returns posts within a certain radius of the specified geo coordinates
+      operationId: ViewByGeoFeed
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: radius_km
+          in: query
+          schema:
+            type: number
+            minimum: 1
+            maximum: 1000
+            default: 50
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '400':
+          description: incorrect parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feed/user/{user_id}:
+    get:
+      summary: specific user's feed
+      description: returns all posts of the specified user
+      operationId: ViewByUserFeed
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts/{post_id}/comments:
+    post:
+      summary: posting a comment
+      description: adding a comment to a post
+      operationId: CommentWrite
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequest'
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '404':
+          description: post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: viewing comments
+      description: getting a list of comments on a post
+      operationId: CommentsView
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsResponse'
+        '404':
+          description: post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/subscribe:
+    post:
+      summary: subscribe to the traveler
+      description: subscribe or unsubscribe from a user
+      operationId: TravelerSubscribe
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  action:
+                    type: string
+                    enum: [subscribed, unsubscribed]
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: you can't subscribe to yourself
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: server is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

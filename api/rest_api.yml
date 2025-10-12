@@ -4,10 +4,10 @@ tags:
   - name: TNS
 
 info:
-  - title: travelers social network open API
-  - describe: this API describe interactions within the social network
-  - version: 1.0.0
-
+  title: travelers social network API
+  description: this API describe interactions within the social network
+  version: 1.0.0
+  
 servers:
   - url: https://api.besttravelnet.com
     description: address of production server
@@ -436,8 +436,6 @@ paths:
       summary: subscribe to the traveler
       description: subscribe or unsubscribe from a user
       operationId: TravelerSubscribe
-      security:
-        - bearerAuth: []
       parameters:
         - name: user_id
           in: path
